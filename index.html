@@ -6,175 +6,132 @@
     <meta charset="utf-8">
     <script src="http://cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
     <script type="text/javascript">
-        var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'phaser-example', { preload: preload, create: create, update: update });
+      var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'phaser-example', { preload: preload, create: create, update: update });
+      
+      function preload() {
+          game.load.image('space', 'assets/skies/deep-space.jpg');
+          game.load.image('bullet', 'assets/games/asteroids/bullets.png');
+          game.load.image('ship', 'assets/games/asteroids/ship.png');
+          game.load.spritesheet('veggies', 'assets/sprites/fruitnveg32wh37.png', 32, 32);
+      }
+
+      var sprite;
+      var cursors;
+      var bullet;
+      var bullets;
+      var bulletTime = 0;
         
-        function preload() {
+      function create() {
+        //  This will run in Canvas mode, so let's gain a little speed and display
+        game.renderer.clearBeforeRender = false;
+        game.renderer.roundPixels = true;
+        //  We need arcade physics
+        game.physics.startSystem(Phaser.Physics.ARCADE);
+        //  A spacey background
+        game.add.tileSprite(0, 0, game.width, game.height, 'space');
+        veggies();
+        bullets();
+        //  Our player ship
+        sprite = game.add.sprite(300, 300, 'ship');
+        sprite.anchor.set(0.5);
+        //  and its physics settings
+        game.physics.enable(sprite, Phaser.Physics.ARCADE);
+        sprite.body.drag.set(100);
+        sprite.body.maxVelocity.set(200);
+        //  Game input
+        cursors = game.input.keyboard.createCursorKeys();
+        game.input.keyboard.addKeyCapture([ Phaser.Keyboard.SPACEBAR ]);
+    }
+      
+    function veggies() {
+      veggies = game.add.group();
+      veggies.enableBody = true;
+      veggies.physicsBodyType = Phaser.Physics.ARCADE;
+      for (var i = 0; i < 50; i++) {
+          var c = veggies.create(game.world.randomX, Math.random() * 500, 'veggies', game.rnd.integerInRange(0, 36));
+          c.name = 'veg' + i;
+          c.body.immovable = true;
+      }
+    }
 
-            game.load.image('space', 'assets/skies/deep-space.jpg');
-            game.load.image('bullet', 'assets/games/asteroids/bullets.png');
-            game.load.image('ship', 'assets/games/asteroids/ship.png');
-            game.load.spritesheet('veggies', 'assets/sprites/fruitnveg32wh37.png', 32, 32);
+    function bullets() {
+
+        //  Our ships bullets
+        bullets = game.add.group();
+        bullets.enableBody = true;
+        bullets.physicsBodyType = Phaser.Physics.ARCADE;
+
+        //  All 40 of them
+        bullets.createMultiple(40, 'bullet');
+        bullets.setAll('anchor.x', 0.5);
+        bullets.setAll('anchor.y', 0.5);
+
+    }
+
+    function update() {
+        game.physics.arcade.overlap(bullets, veggies, collisionHandler, null, this);
+        if (cursors.up.isDown) {
+          game.physics.arcade.accelerationFromRotation(sprite.rotation, 200, sprite.body.acceleration);
+        } else if (cursors.down.isDown) {
+          game.physics.arcade.accelerationFromRotation(sprite.rotation, -200, sprite.body.acceleration);
+        } else {
+          sprite.body.acceleration.set(0);
+        }
+        if (cursors.left.isDown) {
+            sprite.body.angularVelocity = -300;
+        } else if (cursors.right.isDown) {
+            sprite.body.angularVelocity = 300;
+        } else {
+            sprite.body.angularVelocity = 0;
         }
 
-        var sprite;
-        var cursors;
-
-        var bullet;
-        var bullets;
-        var bulletTime = 0;
-        
-          function create() {
-
-            //  This will run in Canvas mode, so let's gain a little speed and display
-            game.renderer.clearBeforeRender = false;
-            game.renderer.roundPixels = true;
-
-            //  We need arcade physics
-            game.physics.startSystem(Phaser.Physics.ARCADE);
-
-            //  A spacey background
-            game.add.tileSprite(0, 0, game.width, game.height, 'space');
-
-            veggies();
-
-            bullets();
-
-            //  Our player ship
-            sprite = game.add.sprite(300, 300, 'ship');
-            sprite.anchor.set(0.5);
-
-            //  and its physics settings
-            game.physics.enable(sprite, Phaser.Physics.ARCADE);
-
-            sprite.body.drag.set(100);
-            sprite.body.maxVelocity.set(200);
-
-            //  Game input
-            cursors = game.input.keyboard.createCursorKeys();
-            game.input.keyboard.addKeyCapture([ Phaser.Keyboard.SPACEBAR ]);
-
+        if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)) {
+            fireBullet();
         }
-        
-        function veggies() {
-            veggies = game.add.group();
-            veggies.enableBody = true;
-            veggies.physicsBodyType = Phaser.Physics.ARCADE;
+        screenWrap(sprite);
+        bullets.forEachExists(screenWrap, this);
+    }   
 
-            for (var i = 0; i < 50; i++)
-            {
-                var c = veggies.create(game.world.randomX, Math.random() * 500, 'veggies', game.rnd.integerInRange(0, 36));
-                c.name = 'veg' + i;
-                c.body.immovable = true;
-            }
+    function fireBullet () {
+      if (game.time.now > bulletTime) {
+        bullet = bullets.getFirstExists(false);
+        if (bullet) {
+          bullet.reset(sprite.body.x + 16, sprite.body.y + 16);
+          bullet.lifespan = 2000;
+          bullet.rotation = sprite.rotation;
+          game.physics.arcade.velocityFromRotation(sprite.rotation, 400, bullet.body.velocity);
+          bulletTime = game.time.now + 50;
         }
+      }
+    }
 
-        function bullets() {
+    function screenWrap (sprite) {
+      if (sprite.x < 0) {
+          sprite.x = game.width;
+      } else if (sprite.x > game.width) {
+          sprite.x = 0;
+      } 
+      if (sprite.y < 0) {
+          sprite.y = game.height;
+      } else if (sprite.y > game.height) {
+          sprite.y = 0;
+      }
+    }
 
-            //  Our ships bullets
-            bullets = game.add.group();
-            bullets.enableBody = true;
-            bullets.physicsBodyType = Phaser.Physics.ARCADE;
+      //  Called if the bullet goes out of the screen
+      function resetBullet (bullet) {
+          bullet.kill();
+      }
 
-            //  All 40 of them
-            bullets.createMultiple(40, 'bullet');
-            bullets.setAll('anchor.x', 0.5);
-            bullets.setAll('anchor.y', 0.5);
-
-        }
-
-        function update() {
-            game.physics.arcade.overlap(bullets, veggies, collisionHandler, null, this);
-            if (cursors.up.isDown)
-            {
-                game.physics.arcade.accelerationFromRotation(sprite.rotation, 200, sprite.body.acceleration);
-            }
-            else
-            {
-                sprite.body.acceleration.set(0);
-            }
-
-            if (cursors.left.isDown)
-            {
-                sprite.body.angularVelocity = -300;
-            }
-            else if (cursors.right.isDown)
-            {
-                sprite.body.angularVelocity = 300;
-            }
-            else
-            {
-                sprite.body.angularVelocity = 0;
-            }
-
-            if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR))
-            {
-                fireBullet();
-            }
-
-            screenWrap(sprite);
-
-            bullets.forEachExists(screenWrap, this);
-
-        }   
-
-        function fireBullet () {
-
-            if (game.time.now > bulletTime)
-            {
-                bullet = bullets.getFirstExists(false);
-
-                if (bullet)
-                {
-                    bullet.reset(sprite.body.x + 16, sprite.body.y + 16);
-                    bullet.lifespan = 2000;
-                    bullet.rotation = sprite.rotation;
-                    game.physics.arcade.velocityFromRotation(sprite.rotation, 400, bullet.body.velocity);
-                    bulletTime = game.time.now + 50;
-                }
-            }
-
-        }
-
-        function screenWrap (sprite) {
-
-            if (sprite.x < 0)
-            {
-                sprite.x = game.width;
-            }
-            else if (sprite.x > game.width)
-            {
-                sprite.x = 0;
-            }
-
-            if (sprite.y < 0)
-            {
-                sprite.y = game.height;
-            }
-            else if (sprite.y > game.height)
-            {
-                sprite.y = 0;
-            }
-
-        }
-
-        //  Called if the bullet goes out of the screen
-        function resetBullet (bullet) {
-
-            bullet.kill();
-
-        }
-
-        //  Called if the bullet hits one of the veg sprites
-        function collisionHandler (bullet, veg) {
-
-            bullet.kill();
-            veg.kill();
-
-        }
-    </script>
+      //  Called if the bullet hits one of the veg sprites
+      function collisionHandler (bullet, veg) {
+          bullet.kill();
+          veg.kill();
+      }
+  </script>
 </head>
 <body>
-    <div id="game"></div>
-    <!--a href="http://phaser.io"><img src="http://files.phaser.io.s3.amazonaws.com/codingtips/issue007/phaser-tips-header1.png" title="Phaser Coding Tips Weekly" style="margin-top: 8px" /></a-->
+  <div id="game"></div>
+  <!--a href="http://phaser.io"><img src="http://files.phaser.io.s3.amazonaws.com/codingtips/issue007/phaser-tips-header1.png" title="Phaser Coding Tips Weekly" style="margin-top: 8px" /></a-->
 </body>
 </html>
