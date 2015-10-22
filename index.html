@@ -12,7 +12,9 @@
       var bullet;
       var bullets;
       var bulletTime = 0;
-      
+      var cantEnemies = 10;      
+      var veggie_speed = 20;
+
       start();
       
       function preload() {
@@ -26,16 +28,21 @@
         //  This will run in Canvas mode, so let's gain a little speed and display
         game.renderer.clearBeforeRender = false;
         game.renderer.roundPixels = true;
+        
         //  We need arcade physics
         game.physics.startSystem(Phaser.Physics.ARCADE);
+        
         //  A spacey background
         game.add.tileSprite(0, 0, game.width, game.height, 'space');
         createVeggies();
         createBullets();
         createShip();
+
         //  Game input
         cursors = game.input.keyboard.createCursorKeys();
         game.input.keyboard.addKeyCapture([ Phaser.Keyboard.SPACEBAR ]);
+        
+        followShip();
       }
 
       function createShip() {
@@ -47,14 +54,15 @@
         ship.body.drag.set(100);
         ship.body.maxVelocity.set(100);
       }
+      
       function createVeggies() {
         veggies = game.add.group();
         veggies.enableBody = true;
         veggies.physicsBodyType = Phaser.Physics.ARCADE;
-        for (var i = 0; i < 50; i++) {
+        for (var i = 0; i < cantEnemies; i++) {
           var c = veggies.create(game.world.randomX, Math.random() * 700, 'veggies', game.rnd.integerInRange(0, 36));
           c.name = 'veg' + i;
-          c.body.immovable = true;
+          //c.body.immovable = true;
         }
       }
 
@@ -94,6 +102,7 @@
         }
         screenWrap(ship);
         bullets.forEachExists(screenWrap, this);
+        followShip();
       }   
 
       function fireBullet () {
@@ -136,7 +145,14 @@
       function collisionHandlerSprite (veg, ship) {
         ship.kill();
         veg.kill();
-        restart(); 
+        var dieText = this.game.add.text(game.camera.width / 2, game.camera.height / 2, "Score: 0", {
+            font: "48px Arial",
+            fill: "#ff0044",
+            align: "left"
+        });
+        dieText.fixedToCamera = false;
+        dieText.setText("Te hicieron mierda!!!");
+        setTimeout(function(){ restart(); }, 2000);
       }
 
       function start() {
@@ -146,6 +162,22 @@
       function restart() {
         game.state.restart();
       }
+
+      function followShip() {
+        for (var i = veggies.children.length - 1; i >= 0; i--) {
+          if (ship.body.x < veggies.children[i].body.x) {
+            veggies.children[i].body.velocity.x = veggie_speed * -1;
+          } else {
+            veggies.children[i].body.velocity.x = veggie_speed;
+          }
+          if (ship.body.y < veggies.children[i].body.y) {
+            veggies.children[i].body.velocity.y = veggie_speed * -1;
+          } else {
+            veggies.children[i].body.velocity.y = veggie_speed;
+          }
+        };
+      }
+
     </script>
 </head>
 <body>
