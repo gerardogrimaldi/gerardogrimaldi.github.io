@@ -4,7 +4,7 @@
 <meta name="description" content="Bullet Pools" />
     <title>Nave 7</title>
     <meta charset="utf-8">
-    <script src="http://cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
+    <script src="http://cdn.jsdelivr.net/phaser/2.4.4/phaser.min.js"></script>
     <script type="text/javascript">
       var game;
       var ship;
@@ -12,8 +12,10 @@
       var bullet;
       var bullets;
       var bulletTime = 0;
-      var cantEnemies = 10;      
+      var cantEnemies = 1;
       var veggie_speed = 20;
+      var initialized;
+
 
       start();
       
@@ -82,7 +84,7 @@
         //bala sobre verdura
         game.physics.arcade.overlap(bullets, veggies, collisionHandler, null, this);
         //verdura sobre nave
-        game.physics.arcade.overlap(ship, veggies, collisionHandlerSprite, null, this);
+        game.physics.arcade.overlap(ship, veggies, collisionHandlerShip, null, this);
         if (cursors.up.isDown) {
           game.physics.arcade.accelerationFromRotation(ship.rotation, 200, ship.body.acceleration);
         } else if (cursors.down.isDown) {
@@ -100,12 +102,45 @@
         if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)) {
           fireBullet();
         }
-        screenWrap(ship);
-        bullets.forEachExists(screenWrap, this);
+        //screenWrap(ship);
+        //bullets.forEachExists(screenWrap, this);
         followShip();
-      }   
 
-      function fireBullet () {
+        checkBaddies();
+
+        checkShip();
+      }
+
+      function checkShip() {
+        var dieText = this.game.add.text(game.camera.width / 2, game.camera.height / 2, "Score: 0", {
+          font: "48px Arial",
+          fill: "#ff0044",
+          align: "left"
+        });
+        dieText.fixedToCamera = false;
+        dieText.setText("Te hicieron mierda!!!");
+        setTimeout(function () {
+          restart();
+        }, 2000);
+      }
+
+      function checkBaddies() {
+        if (veggies.countLiving() < 1) {
+          console.log(veggies.countLiving());
+          var wonText = this.game.add.text(game.camera.width / 2, game.camera.height / 2, "Score: 0", {
+            font: "48px Arial",
+            fill: "#ff0044",
+            align: "left"
+          });
+          wonText.fixedToCamera = false;
+          wonText.setText("Seguimos adelante!!!");
+          setTimeout(function () {
+            restart();
+          }, 3000);
+        }
+      }
+
+      function fireBullet() {
         if (game.time.now > bulletTime) {
           bullet = bullets.getFirstExists(false);
           if (bullet) {
@@ -119,44 +154,38 @@
         }
       }
 
-      function screenWrap (ship) {
+      function screenWrap(ship) {
         if (ship.x < 0) {
-            ship.x = game.width;
+          ship.x = game.width;
         } else if (ship.x > game.width) {
-            ship.x = 0;
-        } 
+          ship.x = 0;
+        }
         if (ship.y < 0) {
-            ship.y = game.height;
+          ship.y = game.height;
         } else if (ship.y > game.height) {
-            ship.y = 0;
+          ship.y = 0;
         }
       }
 
       //  Called if the bullet goes out of the screen
-      function resetBullet (bullet) {
+      function resetBullet(bullet) {
         bullet.kill();
       }
 
       //  Called if the bullet hits one of the veg sprites
-      function collisionHandler (bullet, veg) {
+      function collisionHandler(bullet, veg) {
         bullet.kill();
         veg.kill();
       }
-      function collisionHandlerSprite (veg, ship) {
+
+      function collisionHandlerShip(veg, ship) {
         ship.kill();
         veg.kill();
-        var dieText = this.game.add.text(game.camera.width / 2, game.camera.height / 2, "Score: 0", {
-            font: "48px Arial",
-            fill: "#ff0044",
-            align: "left"
-        });
-        dieText.fixedToCamera = false;
-        dieText.setText("Te hicieron mierda!!!");
-        setTimeout(function(){ restart(); }, 2000);
+
       }
 
       function start() {
-        game = new Phaser.Game(1024, 768, Phaser.CANVAS, 'nave', { preload: preload, create: create, update: update });
+        game = new Phaser.Game(1024, 768, Phaser.CANVAS, 'nave', {preload: preload, create: create, update: update});
       }
 
       function restart() {
@@ -175,9 +204,8 @@
           } else {
             veggies.children[i].body.velocity.y = veggie_speed;
           }
-        };
+        }
       }
-
     </script>
 </head>
 <body>
