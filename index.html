@@ -106,12 +106,9 @@
         //bullets.forEachExists(screenWrap, this);
         followShip();
 
-        checkBaddies();
-
-        checkShip();
       }
 
-      function checkShip() {
+      function endGame() {
         var dieText = this.game.add.text(game.camera.width / 2, game.camera.height / 2, "Score: 0", {
           font: "48px Arial",
           fill: "#ff0044",
@@ -176,12 +173,13 @@
       function collisionHandler(bullet, veg) {
         bullet.kill();
         veg.kill();
+        checkBaddies();
       }
 
       function collisionHandlerShip(veg, ship) {
         ship.kill();
         veg.kill();
-
+        endGame();
       }
 
       function start() {
